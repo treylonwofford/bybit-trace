@@ -1,0 +1,16 @@
+address,chain,role
+0x1Db92e2EeBC8E0c075a02BeA49a2935BcD2dFCF4,Ethereum,Victim: Bybit Cold Wallet 1
+0x0fa09C3A328792253f8dee7116848723b72a6d2e,Ethereum,Attacker: sent the sweepETH call
+0x47666Fab8bd0Ac7003bce3f5C3585383F09486E2,Ethereum,"Bybit Exploiter 1: received 401,346.77 ETH"
+0xA4B2Fd68593B6F34E51cB9eDB66E71c1B4Ab449e,Ethereum,Bybit Exploiter 2: stETH liquidation
+0xdD90071D52F20e85c89802e5Dc1eC0A7B6475f92,Ethereum,Bybit Exploiter 5: branch C source
+0x6591c65321E3c5749A2A0ecb7E9F1aEb4FA3e3ab,Ethereum,Branch A hop wallet
+0x8Ab1D1d3E7db399835172576CcE0bD1C200a1Ce8,Ethereum,Branch A: deposited to THORChain
+191du9ivk3k5YekuXFgtkoVei6pK76wZmf,Bitcoin,Branch A: THORChain memo destination
+0x1A4559d21215cE38e8eDe6aec310316a84c5702f,Ethereum,Branch C split wallet
+0x1E3f59f0586e576659F1F42f69590D3d5ABE8f25,Ethereum,Branch C split wallet
+0x5c8CD411A4a85145Dd6Bb8a049C16f0e537aCffa,Ethereum,Branch C split wallet
+0x593c22d3Bc59EB8A3CB7317F31fc9224b857f246,Ethereum,"Branch C merge wallet (2,083 ETH)"
+0x38b1190177e8178452b851064dF73341E94A326A,Ethereum,Branch C holding wallet (dormant 70 days)
+0xDdb8993F0EF7629aAb5362DaCef2C2aAc3b7c5A9,Ethereum,"Branch C: received 500.1 ETH, 12 May 2025"
+0x8aFF2582A93343f1896E70abAe90662BE189ec68,Ethereum,"Branch C: received 513.78 ETH, 26 May 2025"

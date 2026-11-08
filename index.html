@@ -1,0 +1,431 @@
+<title>Bybit Heist Trace</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="An on-chain trace of three laundering branches from the February 2025 Bybit hack, verified transaction by transaction.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a case file. Classification band, then a single 72ch reading column; the diagram and evidence tables break out wider. */
+:root{
+  --paper:#f4f6f8; --sheet:#ffffff; --ink:#141a22; --muted:#566273; --rule:#d7dde5; --tint:#eef1f5;
+  --trace:#2448a8;      /* the one accent: the path of the money */
+  --hostile:#b3261e; --hostile-bg:#fbeceb;
+  --service:#0f6f86; --service-bg:#e7f3f6;
+  --ok:#23734a; --ok-bg:#e6f2eb; --warn:#9a6312; --warn-bg:#f8efdf;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Inter,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"DejaVu Sans Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e1217; --sheet:#151b22; --ink:#e6ebf1; --muted:#97a3b3; --rule:#2a333f; --tint:#1b222b;
+  --trace:#7ea2ff; --hostile:#ff7b72; --hostile-bg:#3a1b1a; --service:#5cc4d9; --service-bg:#13303a;
+  --ok:#6fcf97; --ok-bg:#16301f; --warn:#e3b05a; --warn-bg:#352812; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e1217; --sheet:#151b22; --ink:#e6ebf1; --muted:#97a3b3; --rule:#2a333f; --tint:#1b222b;
+  --trace:#7ea2ff; --hostile:#ff7b72; --hostile-bg:#3a1b1a; --service:#5cc4d9; --service-bg:#13303a;
+  --ok:#6fcf97; --ok-bg:#16301f; --warn:#e3b05a; --warn-bg:#352812; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.62 var(--f-body);margin:0;-webkit-font-smoothing:antialiased}
+a{color:var(--trace);text-underline-offset:2px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--trace);outline-offset:2px;border-radius:3px}
+.band{background:var(--ink);color:var(--paper);font:500 12px/1 var(--f-mono);letter-spacing:.06em;padding-block:9px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.band .in{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.page{max-width:1080px;margin:0 auto;display:grid;gap:44px}
+.col{max-width:72ch}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.005em}
+h1{font-size:clamp(34px,5.4vw,54px);line-height:1.04;font-weight:700}
+h2{font-size:26px;line-height:1.15;font-weight:600;display:flex;gap:12px;align-items:baseline}
+h2 .n{font:500 13px var(--f-mono);color:var(--muted)}
+h3{font-size:19px;font-weight:600}
+p{margin:0}
+.stack{display:grid;gap:14px}
+.eyebrow{font:500 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--trace)}
+.lede{font-size:19px;line-height:1.55;color:var(--muted);max-width:62ch}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.meta div{background:var(--sheet);padding:12px 14px;display:grid;gap:2px}
+.meta dt{font:500 11px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.meta dd{margin:0;font-weight:500;font-size:14.5px}
+.bluf{background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--trace);border-radius:6px;padding:22px 24px;display:grid;gap:12px}
+.bluf ul{margin:0;padding-left:20px;display:grid;gap:8px}
+.mono{font-family:var(--f-mono);font-size:.88em;word-break:break-all}
+.addr{font-family:var(--f-mono);font-size:.86em;background:var(--tint);padding:1px 5px;border-radius:4px;word-break:break-all}
+/* timeline strip */
+.clock{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.clock div{border-top:2px solid var(--trace);padding-top:10px;display:grid;gap:4px}
+.clock b{font:600 28px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.clock span{font-size:14px;color:var(--muted)}
+/* diagram */
+.fig{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:18px 18px 14px;display:grid;gap:12px}
+.fig .scroll{overflow-x:auto}
+.fig svg{display:block;min-width:900px;width:100%;height:auto}
+.fig figcaption{font-size:13.5px;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1.5px solid}
+svg text{font-family:var(--f-body)}
+svg .nm{font-size:13px;font-weight:600;fill:var(--ink)}
+svg .ad{font-family:var(--f-mono);font-size:10.5px;fill:var(--muted)}
+svg .el{font-family:var(--f-mono);font-size:10.5px;fill:var(--ink)}
+svg .es{font-family:var(--f-mono);font-size:10px;fill:var(--muted)}
+svg .lane{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;fill:var(--trace);font-weight:500}
+svg .note{font-size:11.5px;fill:var(--muted)}
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--tint);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;white-space:nowrap;font-family:var(--f-mono);font-size:12.5px}
+td.t{white-space:nowrap;font-family:var(--f-mono);font-size:12.5px}
+tr.grp td{background:var(--tint);font:600 12px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--trace)}
+.st{display:inline-block;font:500 11px var(--f-mono);padding:2px 7px;border-radius:999px;white-space:nowrap}
+.st.c{background:var(--ok-bg);color:var(--ok)} .st.r{background:var(--warn-bg);color:var(--warn)} .st.u{background:var(--tint);color:var(--muted);border:1px dashed var(--muted)}
+.scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.scale div{display:grid;gap:6px;align-content:start;font-size:14.5px}
+/* poisoning */
+.poison td:nth-child(2),.poison td:nth-child(3){font-family:var(--f-mono);font-size:12.5px;word-break:break-all}
+.poison b{color:var(--hostile);font-weight:600;background:var(--hostile-bg);border-radius:2px}
+/* findings */
+.findings{display:grid;gap:22px;counter-reset:f}
+.finding{display:grid;grid-template-columns:44px minmax(0,1fr);gap:4px 14px}
+.finding::before{counter-increment:f;content:counter(f,decimal-leading-zero);font:600 22px/1.2 var(--f-display);color:var(--trace);grid-row:span 2}
+.finding p{color:var(--ink)}
+.judg{font-style:italic;color:var(--muted)!important}
+ol.leads,ul.plain{margin:0;padding-left:22px;display:grid;gap:8px}
+.ioc{display:grid;gap:10px}
+.ioc-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+button.copy{font:500 13px var(--f-body);background:var(--ink);color:var(--paper);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+.small{font-size:13.5px;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+.src{font-size:14px;display:grid;gap:6px;margin:0;padding-left:20px}
+footer{font-size:13px;color:var(--muted);display:grid;gap:6px}
+@media (max-width:640px){
+  body{font-size:15.5px}.lede{font-size:17px}.bluf{padding:18px}
+  .finding{grid-template-columns:34px minmax(0,1fr)}
+}
+@media print{
+  body{background:#fff}.band{background:#141a22!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{padding-block:20px}.fig svg{min-width:0}.copy{display:none}
+  h2{break-after:avoid}.fig,tr,.finding,.clock{break-inside:avoid}
+  .page,.stack,.ioc{display:block}.page>*+*{margin-top:40px}.stack>*+*,.ioc>*+*{margin-top:14px}.tbl,.fig .scroll{overflow:visible}.clock{grid-template-columns:repeat(4,1fr)}table{font-size:12px}th,td{padding:7px 9px}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+
+<div class="band"><div class="in"><span>TLP:CLEAR · PUBLIC SOURCES ONLY</span><span>CASE TR-2025-0221 · BYBIT / COLD WALLET 1</span></div></div>
+
+<main class="wrap"><div class="page">
+
+<header class="stack">
+  <p class="eyebrow">Blockchain investigation · Flow-of-funds report</p>
+  <h1>Following the Bybit heist: three laundering branches, traced hop by hop</h1>
+  <p class="lede">The $1.4–1.5 billion theft from Bybit on 21 February 2025 is the largest crypto heist on record. This report follows three representative branches of the stolen ETH from the exploiter's wallet to their exits, checking each hop against the raw transaction record.</p>
+  <dl class="meta">
+    <div><dt>Prepared by</dt><dd>Treylon Wofford</dd></div>
+    <div><dt>Report date</dt><dd>7 November 2026</dd></div>
+    <div><dt>Incident date</dt><dd>21 Feb 2025, 14:16 UTC</dd></div>
+    <div><dt>Attribution</dt><dd>DPRK "TraderTraitor" (FBI)</dd></div>
+    <div><dt>Chains</dt><dd>Ethereum → Bitcoin</dd></div>
+    <div><dt>Hops verified</dt><dd>20 transactions</dd></div>
+  </dl>
+</header>
+
+<section class="bluf" aria-labelledby="bluf">
+  <h2 id="bluf">Bottom line</h2>
+  <ul>
+    <li>Within <b>14 minutes</b> of the theft, the exploiter funded a second wallet. Within <b>27 minutes</b>, that wallet was turning stolen Lido stETH into ETH through DEX aggregators. In 71 minutes it received <b>98,047.84 ETH</b> in swap proceeds, which roughly matches the ~98,375 stETH and mETH stolen.</li>
+    <li>Branch A moved <b>257.27 ETH</b> from the exploiter to THORChain in <b>16 minutes</b> through two single-use wallets. The THORChain deposit memo shows a swap to a Bitcoin address.</li>
+    <li>Branch C split funds from a labeled exploiter wallet, then <b>merged 2,083 ETH from six wallets</b> into one address. It sent a 1 ETH test, moved the rest to a holding wallet, and left it untouched for <b>70 days</b> before moving it again in May 2025.</li>
+    <li>Third parties ran <b>address poisoning</b> against the launderers. About 98% of the exploiter's 4,418 transactions are incoming dust from look-alike addresses. That noise can mislead analysts who match addresses by their first and last characters.</li>
+    <li>I assess with <b>high confidence</b> that the funds in all three branches came from the Bybit theft. Each hop below links to a transaction anyone can check.</li>
+  </ul>
+</section>
+
+<section class="clock" aria-label="Laundering speed">
+  <div><b>13m 36s</b><span>Theft to gas funding of Exploiter 2</span></div>
+  <div><b>27m 12s</b><span>Theft to first swap proceeds (ParaSwap)</span></div>
+  <div><b>16m 12s</b><span>Exploiter 1 to THORChain, branch A</span></div>
+  <div><b>69d 23h</b><span>Dormancy of merged 2,082 ETH, branch C</span></div>
+</section>
+
+<section class="stack col" aria-labelledby="bg">
+  <h2 id="bg"><span class="n">1</span>Background</h2>
+  <p>Bybit's Ethereum cold wallet (<span class="addr">0x1Db92e2EeBC8E0c075a02BeA49a2935BcD2dFCF4</span>) was a Safe multisig. Attackers compromised a Safe{Wallet} developer environment and injected JavaScript into the Safe web app that activated only for Bybit's wallet. When signers approved what looked like a routine transfer at 14:13:35 UTC, they signed a contract upgrade that handed control to the attacker.</p>
+  <p>Ninety-six seconds later, a <span class="mono">sweepETH</span> call moved <b>401,346.77 ETH</b> to <span class="addr">0x47666Fab8bd0Ac7003bce3f5C3585383F09486E2</span>, labeled "Bybit Exploiter 1" on Etherscan. Public reporting puts the total haul at about 401,000 ETH, 90,375 stETH, 15,000 cmETH and 8,000 mETH. mETH Protocol later recovered the 15,000 cmETH. On 26 February 2025 the FBI attributed the theft to North Korea ("TraderTraitor") and published 51 Ethereum addresses for the industry to block.</p>
+</section>
+
+<section class="stack" aria-labelledby="flow">
+  <h2 id="flow"><span class="n">2</span>Flow of funds</h2>
+  <figure class="fig" style="margin:0">
+    <div class="scroll">
+<svg viewBox="0 0 1222 580" role="img" aria-labelledby="svgt">
+  <title id="svgt">Flow of funds from Bybit Cold Wallet 1 through three traced branches</title>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--trace)"/></marker>
+    <marker id="ahm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+  </defs>
+  <!-- lane labels -->
+  <text class="lane" x="436" y="26">A · CONVERSION TO BITCOIN</text>
+  <text class="lane" x="436" y="216">B · LIQUIDATION</text>
+  <text class="lane" x="436" y="406">C · LAYERING &amp; DORMANCY</text>
+
+  <!-- edges -->
+  <g fill="none" stroke="var(--trace)" stroke-width="2" marker-end="url(#ah)">
+    <path d="M156 262 H222"/>
+    <path d="M366 246 C400 200 400 80 432 72"/>
+    <path d="M576 72 H642"/>
+    <path d="M786 72 H852"/>
+    <path d="M366 268 H432"/>
+    <path d="M576 252 H642"/>
+    <path d="M646 276 H580"/>
+    <path d="M506 290 V452"/>
+    <path d="M576 476 H642"/>
+    <path d="M786 476 H852"/>
+    <path d="M996 476 H1062"/>
+  </g>
+  <g fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#ahm)">
+    <path d="M996 72 H1062"/>
+    <path d="M926 552 V508"/>
+  </g>
+
+  <!-- edge labels -->
+  <text class="el" x="189" y="246" text-anchor="middle">401,347</text>
+  <text class="es" x="189" y="286" text-anchor="middle">ETH 14:16</text>
+  <text class="el" x="412" y="150">257.26 ETH</text>
+  <text class="es" x="412" y="164">3 Mar 15:28</text>
+  <text class="el" x="609" y="60" text-anchor="middle">257.26</text>
+  <text class="es" x="609" y="92" text-anchor="middle">15:42</text>
+  <text class="el" x="819" y="60" text-anchor="middle">257.27</text>
+  <text class="es" x="819" y="92" text-anchor="middle">15:44</text>
+  <text class="es" x="1029" y="60" text-anchor="middle">memo</text>
+  <text class="es" x="1029" y="92" text-anchor="middle">=:b:</text>
+  <text class="el" x="399" y="292" text-anchor="middle">1 ETH</text>
+  <text class="es" x="399" y="304" text-anchor="middle">gas 14:29</text>
+  <text class="es" x="609" y="244" text-anchor="middle">stETH</text>
+  <text class="el" x="613" y="296" text-anchor="middle">98,047.84</text>
+  <text class="es" x="613" y="308" text-anchor="middle">ETH back</text>
+  <text class="el" x="516" y="360">9,980 ETH</text>
+  <text class="es" x="516" y="374">21 Feb 14:45</text>
+  <text class="el" x="609" y="464" text-anchor="middle">983.00</text>
+  <text class="es" x="609" y="496" text-anchor="middle">3 Mar 17:58</text>
+  <text class="el" x="819" y="464" text-anchor="middle">983.00</text>
+  <text class="es" x="819" y="496" text-anchor="middle">18:11–18:19</text>
+  <text class="el" x="1029" y="464" text-anchor="middle">2,083.07</text>
+  <text class="es" x="1029" y="496" text-anchor="middle">1 + 2,082.07</text>
+  <text class="note" x="936" y="546">+1,100.00 ETH from 3 wallets</text>
+  <text class="note" x="936" y="561">(origin not traced)</text>
+  <text class="note" x="1066" y="524">Held 70 days, then</text>
+  <text class="note" x="1066" y="539">500.1 ETH · 12 May</text>
+  <text class="note" x="1066" y="554">513.78 ETH · 26 May</text>
+
+  <!-- nodes: victim -->
+  <g><rect x="16" y="234" width="140" height="56" rx="6" fill="var(--sheet)" stroke="var(--ink)" stroke-width="1.5"/>
+    <text class="nm" x="28" y="257">Bybit Cold Wallet 1</text><text class="ad" x="28" y="276">0x1Db9…FCF4</text></g>
+  <!-- attacker-labeled -->
+  <g fill="var(--hostile-bg)" stroke="var(--hostile)" stroke-width="1.5">
+    <rect x="226" y="234" width="140" height="56" rx="6"/>
+    <rect x="436" y="234" width="140" height="56" rx="6"/>
+    <rect x="436" y="452" width="140" height="56" rx="6"/>
+  </g>
+  <text class="nm" x="238" y="257">Bybit Exploiter 1</text><text class="ad" x="238" y="276">0x4766…86E2</text>
+  <text class="nm" x="448" y="257">Bybit Exploiter 2</text><text class="ad" x="448" y="276">0xA4B2…449e</text>
+  <text class="nm" x="448" y="475">Bybit Exploiter 5</text><text class="ad" x="448" y="494">0xdD90…5f92</text>
+  <!-- unlabeled hops -->
+  <g fill="var(--sheet)" stroke="var(--ink)" stroke-width="1.2">
+    <rect x="436" y="44" width="140" height="56" rx="6"/>
+    <rect x="646" y="44" width="140" height="56" rx="6"/>
+    <rect x="646" y="452" width="140" height="56" rx="6"/>
+    <rect x="856" y="452" width="140" height="56" rx="6"/>
+    <rect x="1066" y="452" width="140" height="56" rx="6"/>
+  </g>
+  <text class="nm" x="448" y="67">Hop wallet</text><text class="ad" x="448" y="86">0x6591…e3ab</text>
+  <text class="nm" x="658" y="67">Hop wallet</text><text class="ad" x="658" y="86">0x8Ab1…1Ce8</text>
+  <text class="nm" x="658" y="475">3 split wallets</text><text class="ad" x="658" y="494">0x1A45 0x1E3f 0x5c8C</text>
+  <text class="nm" x="868" y="475">Merge wallet</text><text class="ad" x="868" y="494">0x593c…f246</text>
+  <text class="nm" x="1078" y="475">Holding wallet</text><text class="ad" x="1078" y="494">0x38b1…326A</text>
+  <!-- services -->
+  <g fill="var(--service-bg)" stroke="var(--service)" stroke-width="1.5">
+    <rect x="856" y="44" width="140" height="56" rx="6"/>
+    <rect x="646" y="234" width="140" height="56" rx="6"/>
+  </g>
+  <text class="nm" x="868" y="67">THORChain Router</text><text class="ad" x="868" y="86">v4.1.1 0xD37B…7146</text>
+  <text class="nm" x="658" y="257">DEX aggregators</text><text class="ad" x="658" y="276">12 swaps, 3 venues</text>
+  <!-- unverified -->
+  <rect x="1066" y="44" width="140" height="56" rx="6" fill="var(--sheet)" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
+  <text class="nm" x="1078" y="67">Bitcoin address</text><text class="ad" x="1078" y="86">191du9…wZmf</text>
+</svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--hostile-bg);border-color:var(--hostile)"></i>Labeled exploiter wallet</span>
+      <span><i style="background:var(--sheet);border-color:var(--ink)"></i>Unlabeled hop wallet</span>
+      <span><i style="background:var(--service-bg);border-color:var(--service)"></i>Service or protocol</span>
+      <span><i style="background:var(--sheet);border-color:var(--muted);border-style:dashed"></i>Named in data, not yet traced</span>
+    </div>
+    <figcaption>Amounts in ETH; times in UTC. Branch C amounts are combined across the three split wallets. Full addresses and transaction links are in the evidence log.</figcaption>
+  </figure>
+</section>
+
+<section class="stack" aria-labelledby="method">
+  <h2 id="method"><span class="n">3</span>Scope, method and confidence</h2>
+  <div class="col stack">
+    <p>The theft fanned out to thousands of addresses, so tracing every unit is a job for a team with commercial tooling. I chose three branches, one for each phase of the laundering: <b>liquidation</b> (turning staked ETH into plain ETH), <b>conversion</b> (moving ETH off Ethereum) and <b>layering</b> (splitting and merging to break the trail).</p>
+    <p>I checked every hop against the transaction record on Etherscan: sender, receiver, amount, block and timestamp. I linked hops through exact amount matches, timing and Etherscan's "funded by" field. I decoded the THORChain deposit memo from the transaction's input data. Figures from news and vendor reports are marked <em>Reported</em> and kept apart from my own findings.</p>
+  </div>
+  <div class="scale">
+    <div><span class="st c">Confirmed</span>A direct transfer I viewed in the transaction record, with matching addresses and amount.</div>
+    <div><span class="st r">Reported</span>Stated in public reporting (FBI, Verichains, analytics firms). Not independently re-verified here.</div>
+    <div><span class="st u">Not traced</span>Named in the data, but this investigation did not follow it further.</div>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="log">
+  <h2 id="log"><span class="n">4</span>Evidence log</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Time (UTC)</th><th>From</th><th>To</th><th style="text-align:right">Amount</th><th>Transaction</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="7">Theft · 21 Feb 2025</td></tr>
+      <tr><td>1</td><td class="t">14:13:35</td><td>Safe signers</td><td>Cold Wallet 1 proxy: malicious implementation upgrade</td><td class="num">n/a</td><td><span class="mono">0x46deef0f…7882</span></td><td><span class="st r">Reported</span></td></tr>
+      <tr><td>2</td><td class="t">14:16:11</td><td>Bybit Cold Wallet 1</td><td>Bybit Exploiter 1 (<span class="mono">sweepETH</span>)</td><td class="num">401,346.77 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xb61413c495fdad6114a7aa863a00b2e3c28945979a10885b12b30316ea9f072c" target="_blank" rel="noopener">0xb61413c4…072c</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr class="grp"><td colspan="7">Branch B · Liquidation · 21 Feb 2025</td></tr>
+      <tr><td>3</td><td class="t">14:29:47</td><td>Bybit Exploiter 1</td><td>Bybit Exploiter 2 (gas)</td><td class="num">1.00 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xdd5cd734d4d67ff5af7e53cdd72c26d4d7d28d08c8f0ff32d12ab3e2a277e4bc" target="_blank" rel="noopener">0xdd5cd734…e4bc</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>4</td><td class="t">14:42:47</td><td>Bybit Exploiter 2</td><td>Approves ParaSwap Delta V2 to spend stETH</td><td class="num">10,000 stETH</td><td><a class="mono" href="https://etherscan.io/tx/0x8ece559e6052d1f1930ff670609d698a256014da024f1d84d81cc185599ae728" target="_blank" rel="noopener">0x8ece559e…e728</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>5</td><td class="t">14:43:23–15:27:47</td><td>ParaSwap (8), Uniswap (3), DODO (1)</td><td>Bybit Exploiter 2: swap proceeds</td><td class="num">98,047.84 ETH</td><td><a href="https://etherscan.io/address/0xA4B2Fd68593B6F34E51cB9eDB66E71c1B4Ab449e" target="_blank" rel="noopener">12 internal txs</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>6</td><td class="t">14:45:11</td><td>Bybit Exploiter 2</td><td>Bybit Exploiter 5</td><td class="num">9,980.00 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xf7900c28239b45d83a5389e8debc491446d380680a6fd156c6ec9a3479c7e0c9" target="_blank" rel="noopener">0xf7900c28…e0c9</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr class="grp"><td colspan="7">Branch A · Conversion to Bitcoin · 3 Mar 2025</td></tr>
+      <tr><td>7</td><td class="t">15:28:35</td><td>Bybit Exploiter 1</td><td><span class="mono">0x6591c65321E3c5749A2A0ecb7E9F1aEb4FA3e3ab</span></td><td class="num">257.26 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xf4a3ab131af116fd9bbe7b3484019e4d32850737c01ec1c45be6ba7608a9cd92" target="_blank" rel="noopener">0xf4a3ab13…cd92</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>8</td><td class="t">15:42:59</td><td><span class="mono">0x6591…e3ab</span></td><td><span class="mono">0x8Ab1D1d3E7db399835172576CcE0bD1C200a1Ce8</span></td><td class="num">257.26 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x3463e5c003d5fddadb5734ee5a3336c8907d9577d452cc10dccb1a9411a38c3c" target="_blank" rel="noopener">0x3463e5c0…8c3c</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>9</td><td class="t">15:44:47</td><td><span class="mono">0x8Ab1…1Ce8</span></td><td>THORChain Router v4.1.1 (<span class="mono">depositWithExpiry</span>)</td><td class="num">257.27 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x16ed29f9bf9914ea3b62e4e94829eaef10118d04e82849a285ef8a5700defa1a" target="_blank" rel="noopener">0x16ed29f9…fa1a</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>10</td><td class="t">after 15:44</td><td>THORChain</td><td>BTC <span class="mono">191du9ivk3k5YekuXFgtkoVei6pK76wZmf</span> (memo destination)</td><td class="num">n/a</td><td>Bitcoin outbound</td><td><span class="st u">Not traced</span></td></tr>
+      <tr class="grp"><td colspan="7">Branch C · Layering and dormancy · 3 Mar to 26 May 2025</td></tr>
+      <tr><td>11</td><td class="t">17:58:59</td><td>Bybit Exploiter 5</td><td><span class="mono">0x1A4559d21215cE38e8eDe6aec310316a84c5702f</span></td><td class="num">561.06 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x167228e4dd78e962562b56df3049b5d83ea58f6f44fb61e5df6cc4d45ffb9287" target="_blank" rel="noopener">0x167228e4…9287</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>12</td><td class="t">17:59:11</td><td>Bybit Exploiter 5</td><td><span class="mono">0x1E3f59f0586e576659F1F42f69590D3d5ABE8f25</span></td><td class="num">286.29 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x3b6504cbbd147c6d4a661a3104f8b2b4ffebd6bc114c9d511ea9fa44adf72d28" target="_blank" rel="noopener">0x3b6504cb…2d28</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>13</td><td class="t">18:13:47</td><td>Bybit Exploiter 5</td><td><span class="mono">0x5c8CD411A4a85145Dd6Bb8a049C16f0e537aCffa</span></td><td class="num">135.65 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xa2e4935c2a3c191bd4d5ac13f2649a2840cc3a4e6ac57228a376156f72e5f9cf" target="_blank" rel="noopener">0xa2e4935c…f9cf</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>14</td><td class="t">18:11:59</td><td><span class="mono">0x1A45…702f</span></td><td>Merge wallet <span class="mono">0x593c22d3Bc59EB8A3CB7317F31fc9224b857f246</span></td><td class="num">561.06 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x7cfdaf4ae1c639bfd122f080fe76602b21be72c24980c999717d7c33b45c64d4" target="_blank" rel="noopener">0x7cfdaf4a…64d4</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>15</td><td class="t">18:16:11</td><td><span class="mono">0x1E3f…8f25</span></td><td>Merge wallet</td><td class="num">286.29 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xe73afadc3117b1ce3f4c0a51860db788956373e550b66e5950053ea90ed1deb0" target="_blank" rel="noopener">0xe73afadc…ebb0</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>16</td><td class="t">18:19:23</td><td><span class="mono">0x5c8C…cffa</span></td><td>Merge wallet</td><td class="num">135.65 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xc20f739ad755e191b4acac88aa5212e70c4e7417fd8ed54046323f226a6f7ccf" target="_blank" rel="noopener">0xc20f739a…7ccf</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>17</td><td class="t">17:58:47–18:42:59</td><td>3 other wallets (0xD710…, 0x1C6C…, 0x5445…)</td><td>Merge wallet</td><td class="num">1,100.00 ETH</td><td><a href="https://etherscan.io/address/0x593c22d3Bc59EB8A3CB7317F31fc9224b857f246" target="_blank" rel="noopener">3 transfers</a></td><td><span class="st u">Not traced</span></td></tr>
+      <tr><td>18</td><td class="t">18:57:47</td><td>Merge wallet</td><td>Holding wallet <span class="mono">0x38b1190177e8178452b851064dF73341E94A326A</span> (test)</td><td class="num">1.00 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x03be6ae424b8fc4759d19ed4518ed6daf6afd544d8e3a31fd515f42573aa6114" target="_blank" rel="noopener">0x03be6ae4…6114</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>19</td><td class="t">19:58:47</td><td>Merge wallet</td><td>Holding wallet</td><td class="num">2,082.07 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x93ec8588c86c59b78f74c6ef53445c1ca7ecdcd9d851b9773645c58cfbe8b95a" target="_blank" rel="noopener">0x93ec8588…b95a</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>20</td><td class="t">12 May 19:54:59</td><td>Holding wallet</td><td><span class="mono">0xDdb8993F0EF7629aAb5362DaCef2C2aAc3b7c5A9</span></td><td class="num">500.10 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0xcf5ae2cf25d588c5a5c53771482f3a86c195a874be0b0fecc29d7994ec7749a5" target="_blank" rel="noopener">0xcf5ae2cf…49a5</a></td><td><span class="st c">Confirmed</span></td></tr>
+      <tr><td>21</td><td class="t">26 May 14:09:35</td><td>Holding wallet</td><td><span class="mono">0x8aFF2582A93343f1896E70abAe90662BE189ec68</span></td><td class="num">513.78 ETH</td><td><a class="mono" href="https://etherscan.io/tx/0x6a40892ab3b6392bdeff4d7ab5aee6688a1ff68b5134a3c43579daad52712738" target="_blank" rel="noopener">0x6a40892a…2738</a></td><td><span class="st c">Confirmed</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Row 1 comes from Verichains' technical analysis. Row 5 adds up the 12 internal transfers to Exploiter 2 shown on Etherscan. Etherscan shows only the latest 25 transactions per address, so other activity by these wallets may exist.</p>
+</section>
+
+<section class="stack" aria-labelledby="find">
+  <h2 id="find"><span class="n">5</span>Findings</h2>
+  <div class="findings col">
+    <div class="finding"><h3>Liquid staking tokens were dumped first, through aggregators</h3>
+      <p>Exploiter 2 got 1 ETH of gas 13 minutes after the theft, approved ParaSwap's Delta V2 contract to spend stETH, and collected 98,047.84 ETH in 12 swaps over 44 minutes. That total is within 0.4% of the 98,375 stETH and mETH reported stolen. Staked ETH can be frozen or blocklisted by its issuer, so it was the riskiest asset to hold. Converting it first and fast follows from that. <span class="judg">Assessment: high confidence these swaps liquidated the stolen stETH and mETH. I did not view the token transfer that moved stETH into Exploiter 2, so that link rests on the approval, the amounts and the timing.</span></p></div>
+    <div class="finding"><h3>Single-use wallets fed THORChain within minutes</h3>
+      <p>In branch A, each of two fresh wallets received exactly 257.26 ETH and passed it on within 14 minutes and 2 minutes. Each kept only dust. The final deposit's memo, <span class="mono">=:b:191du9ivk3k5YekuXFgtkoVei6pK76wZmf:0/1/0:dx:10</span>, asks THORChain to swap the ETH to native BTC, deliver it to that address and run it as a streaming swap. The memo also carries an affiliate tag. Public reporting attributes about 72% of the converted ETH to THORChain, and branch A shows that route at the level of a single transaction.</p></div>
+    <div class="finding"><h3>Split, merge, test, then wait</h3>
+      <p>Exploiter 5 sent ETH to three wallets that each forwarded the exact amount to one merge wallet within 20 minutes. Three more wallets, not traced here, added 1,100 ETH, for 2,083.00 ETH in total. The merge wallet sent a 1 ETH test to a new address, then the remaining 2,082.07 ETH an hour later. That address then sat untouched for 69 days and 23 hours. It reappeared in May 2025 with transfers of 500.1 ETH and 513.78 ETH. <span class="judg">Assessment: the dormancy points to the launderers waiting for attention to fade. 983.00 ETH (47%) of the merged funds trace directly to Exploiter 5. The rest arrived at the same time and in the same pattern but is unverified.</span></p></div>
+    <div class="finding"><h3>The launderers were themselves being poisoned</h3>
+      <p>Exploiter 1 has 4,418 transactions, but its nonce shows it sent only about 62. Roughly 4,350 (about 98%) are incoming dust or zero-value transfers. Many come from addresses that copy the first and last characters of wallets the launderers had just used, hoping someone copies the wrong address from their history. The same pattern appears around the holding wallet in May. For investigators, this noise inflates transaction counts and can mislead any tool or analyst that matches addresses by prefix and suffix. Several zero-value transfers also appear to come from an address labeled "FixedFloat Dep". Zero-value token transfers can be spoofed, so I treat those as noise, not as evidence of an exchange deposit.</p></div>
+  </div>
+  <div class="tbl poison"><table>
+    <thead><tr><th>Used by launderer</th><th>Real counterparty</th><th>Look-alike that sent dust</th></tr></thead>
+    <tbody>
+      <tr><td>Exploiter 1, hop 7</td><td><b>0x6591</b>c65321E3c5749A2A0ecb7E9F1aEb4FA3<b>e3ab</b></td><td><b>0x6591</b>d87DE235e5EE78688Dd3858c2f4f38f7<b>e3ab</b></td></tr>
+      <tr><td>Hop wallet 0x6591, hop 8</td><td><b>0x8Ab1</b>D1d3E7db399835172576CcE0bD1C200a<b>1Ce8</b></td><td><b>0x8aB1</b>Ceded9796902C9554359ccd396F5d2Ec<b>1ce8</b></td></tr>
+      <tr><td>Exploiter 1, 3 Mar</td><td><b>0x9Bb1</b>4c34740996c8Ce9824bc8E09161972674<b>E33</b></td><td><b>0x9Bb1</b>1917b3aD3C72D9e5eB5C5FFE0a914A0c4<b>E33</b></td></tr>
+      <tr><td>Exploiter 1, 3 Mar</td><td><b>0xb490</b>dAB6E0b7Df4DbF3b1b607E0E940BC7FA<b>31C9</b></td><td><b>0xb490</b>c2362904fc11B7975ba681387daA0eB0<b>31C9</b></td></tr>
+      <tr><td>Holding wallet, hop 20</td><td><b>0xDdb8</b>993F0EF7629aAb5362DaCef2C2aAc3b7<b>c5A9</b></td><td><b>0xDdB8</b>a33659FF7c973Cc8b43744909355bcda<b>c5A9</b></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="stack col" aria-labelledby="ctx">
+  <h2 id="ctx"><span class="n">6</span>The wider picture <span class="st r">Reported</span></h2>
+  <ul class="plain">
+    <li>About 401,000 ETH plus ~113,000 in staked ETH derivatives were stolen, worth $1.4–1.5 billion at the time.</li>
+    <li>On the first day, the haul was split into roughly 40–50 wallets. Within a week the number of addresses reached the thousands, and the FBI's notice lists 51 key Ethereum addresses.</li>
+    <li>Arkham and others report that about 72% of the converted ETH crossed to Bitcoin through THORChain. eXch, a no-KYC swap service, handled about 79,655 ETH (about 16%).</li>
+    <li>On 4 March 2025, Bybit's CEO said 77% of the funds were still traceable, 20% had "gone dark" and 3% had been frozen. Tether and Circle froze stablecoins linked to the hack, and Chainflip refused deposits from flagged addresses.</li>
+  </ul>
+</section>
+
+<section class="stack col" aria-labelledby="leads">
+  <h2 id="leads"><span class="n">7</span>Open leads</h2>
+  <ol class="leads">
+    <li>Look up THORChain's outbound transaction for inbound hash <span class="mono">0x16ed29f9…fa1a</span>, then follow BTC address <span class="mono">191du9ivk3k5YekuXFgtkoVei6pK76wZmf</span> on Bitcoin. Watch for consolidation, mixing or exchange deposits.</li>
+    <li>Follow the May 2025 outflows from the holding wallet (500.1 ETH and 513.78 ETH) and the rest of its 138 transactions.</li>
+    <li>Trace back the three wallets that put 1,100 ETH into the merge wallet, to confirm they come from the same theft.</li>
+    <li>Pull the stETH and mETH token transfer history of Exploiter 2 to close the one inferred link in branch B.</li>
+    <li>Screen every address in this report against the FBI's list and commercial attribution data.</li>
+  </ol>
+</section>
+
+<section class="stack col" aria-labelledby="rec">
+  <h2 id="rec"><span class="n">8</span>Recommendations for compliance teams</h2>
+  <ul class="plain">
+    <li><b>Screen for indirect exposure as well as direct.</b> Every wallet in branches A and C is unlabeled, one to three hops from a listed exploiter address. Screening only for direct contact misses them.</li>
+    <li><b>Treat dormant wallets as live risk.</b> Branch C funds stayed still for 70 days. Alert on sudden activity from wallets that are a few hops from a known hack.</li>
+    <li><b>Hold BTC deposits from cross-chain swaps for review</b> when they arrive in the weeks after a major hack, especially from THORChain streaming swaps.</li>
+    <li><b>Compare full addresses, never just the prefix and suffix,</b> in investigations, withdrawal allowlists and case notes. Address poisoning is aimed at exactly that shortcut.</li>
+  </ul>
+</section>
+
+<section class="ioc" aria-labelledby="iocs">
+  <div class="ioc-h"><h2 id="iocs"><span class="n">9</span>Addresses for screening</h2><button class="copy" id="copyioc" type="button">Copy all addresses</button></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Address</th><th>Chain</th><th>Role</th></tr></thead>
+    <tbody id="iocbody"></tbody>
+  </table></div>
+  <textarea id="iocraw" aria-label="All addresses as plain text" readonly hidden></textarea>
+</section>
+
+<section class="stack col" aria-labelledby="how">
+  <h2 id="how"><span class="n">10</span>How this report was made</h2>
+  <p>AI helped with this investigation: gathering public reporting, reading block explorer records, decoding the THORChain memo from hex and drafting the text. The investigative decisions are in the report and can be checked: which branches to follow, what counts as a confirmed link, where the evidence stops. Every confirmed hop links to its transaction so a reader can verify it independently. Data was collected on 7 November 2026 from public sources only.</p>
+</section>
+
+<section class="stack col" aria-labelledby="srcs">
+  <h2 id="srcs"><span class="n">11</span>Sources</h2>
+  <ol class="src">
+    <li><a href="https://www.ic3.gov/PSA/2025/PSA250226" target="_blank" rel="noopener">FBI, PSA I-022625-PSA: North Korea responsible for $1.5 billion Bybit hack</a> (26 Feb 2025)</li>
+    <li><a href="https://blog.verichains.io/p/technical-analysis-of-the-bybit-hot" target="_blank" rel="noopener">Verichains, Technical analysis of the Bybit wallet exploit</a></li>
+    <li><a href="https://research.nansen.ai/articles/by-bit-hack-what-happened-and-where-are-the-funds-going-on-chain" target="_blank" rel="noopener">Nansen, Bybit hack: what happened and where the funds are going</a></li>
+    <li><a href="https://info.arkm.com/research/lazarus-bridged-1-3b-of-bybit-eth-to-bitcoin" target="_blank" rel="noopener">Arkham, Lazarus bridged $1.3B of Bybit ETH to Bitcoin</a> (5 Mar 2025)</li>
+    <li><a href="https://amlcrypto.io/en/blog/event-chronology-bybit-hack" target="_blank" rel="noopener">AMLCrypto, Event chronology of the Bybit hack</a></li>
+    <li><a href="https://www.theblock.co/post/344384/bybit-ceo-says-20-from-1-4-billion-theft-has-gone-dark-as-hackers-swap-to-bitcoin" target="_blank" rel="noopener">The Block, Bybit CEO says 20% of $1.4 billion theft has "gone dark"</a></li>
+    <li>Etherscan transaction and address records, linked in the evidence log</li>
+  </ol>
+</section>
+
+<hr>
+<footer><span>TLP:CLEAR. Built entirely from public blockchain data and published reporting. Addresses described as hop, merge or holding wallets are identified by their on-chain behavior, not by the identity of their owners.</span><span>Prepared by Treylon Wofford · 7 November 2026</span></footer>
+
+</div></main>
+
+<script>
+(function(){
+  var iocs=[
+    ["0x1Db92e2EeBC8E0c075a02BeA49a2935BcD2dFCF4","Ethereum","Victim: Bybit Cold Wallet 1"],
+    ["0x0fa09C3A328792253f8dee7116848723b72a6d2e","Ethereum","Attacker: sent the sweepETH call"],
+    ["0x47666Fab8bd0Ac7003bce3f5C3585383F09486E2","Ethereum","Bybit Exploiter 1: received 401,346.77 ETH"],
+    ["0xA4B2Fd68593B6F34E51cB9eDB66E71c1B4Ab449e","Ethereum","Bybit Exploiter 2: stETH liquidation"],
+    ["0xdD90071D52F20e85c89802e5Dc1eC0A7B6475f92","Ethereum","Bybit Exploiter 5: branch C source"],
+    ["0x6591c65321E3c5749A2A0ecb7E9F1aEb4FA3e3ab","Ethereum","Branch A hop wallet"],
+    ["0x8Ab1D1d3E7db399835172576CcE0bD1C200a1Ce8","Ethereum","Branch A: deposited to THORChain"],
+    ["191du9ivk3k5YekuXFgtkoVei6pK76wZmf","Bitcoin","Branch A: THORChain memo destination"],
+    ["0x1A4559d21215cE38e8eDe6aec310316a84c5702f","Ethereum","Branch C split wallet"],
+    ["0x1E3f59f0586e576659F1F42f69590D3d5ABE8f25","Ethereum","Branch C split wallet"],
+    ["0x5c8CD411A4a85145Dd6Bb8a049C16f0e537aCffa","Ethereum","Branch C split wallet"],
+    ["0x593c22d3Bc59EB8A3CB7317F31fc9224b857f246","Ethereum","Branch C merge wallet (2,083 ETH)"],
+    ["0x38b1190177e8178452b851064dF73341E94A326A","Ethereum","Branch C holding wallet (dormant 70 days)"],
+    ["0xDdb8993F0EF7629aAb5362DaCef2C2aAc3b7c5A9","Ethereum","Branch C: received 500.1 ETH, 12 May 2025"],
+    ["0x8aFF2582A93343f1896E70abAe90662BE189ec68","Ethereum","Branch C: received 513.78 ETH, 26 May 2025"]
+  ];
+  var tb=document.getElementById("iocbody"), raw=document.getElementById("iocraw");
+  iocs.forEach(function(r){var tr=document.createElement("tr");tr.innerHTML='<td class="mono"></td><td></td><td></td>';tr.children[0].textContent=r[0];tr.children[1].textContent=r[1];tr.children[2].textContent=r[2];tb.appendChild(tr);});
+  raw.value=iocs.map(function(r){return r[0];}).join("\n");
+  var b=document.getElementById("copyioc");
+  b.addEventListener("click",function(){
+    var done=function(){b.textContent="Copied "+iocs.length+" addresses";setTimeout(function(){b.textContent="Copy all addresses";},2200);};
+    var fallback=function(){raw.hidden=false;raw.style.cssText="width:100%;height:120px;font:12px var(--f-mono);background:var(--sheet);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:8px";raw.select();b.textContent="Press Ctrl+C to copy";};
+    try{navigator.clipboard.writeText(raw.value).then(done,fallback);}catch(e){fallback();}
+  });
+})();
+</script>
